@@ -1,0 +1,52 @@
+{
+    "users": [
+        {
+            "handle": "masudul2002",
+            "department": "CSE"
+        },
+        {
+            "handle": "n30n_X",
+            "department": "CSE"
+        },
+        {
+            "handle": "Nayeem_144",
+            "department": "CSE"
+        },
+        {
+            "handle": "XuDXD",
+            "department": "CSE"
+        },
+        {
+            "handle": "Shafin_Gremory",
+            "department": "CSE"
+        },
+        {
+            "handle": "Compiler_12",
+            "department": "CSE"
+        },
+        {
+            "handle": "S1RA7",
+            "department": "CSE"
+        },
+        {
+            "handle": "khandoker_eshrak",
+            "department": "CSE"
+        },
+        {
+            "handle": "Fahimshahriar4321",
+            "department": "CSE"
+        },
+        {
+            "handle": "Suhana_boksh17",
+            "department": "CSE"
+        },
+        {
+            "handle": "juuuuuui",
+            "department": "CSE"
+        }
+    ],
+    "config": {
+        "universityName": "SSTU",
+        "reportFormUrl": "https://forms.google.com/your-form-id"
+    }
+}

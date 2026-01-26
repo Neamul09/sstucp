@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CP Leaderboard | SSTU</title>
+    <meta name="description"
+        content="Track competitive programming rankings for SSTU students. Live stats from Codeforces.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-trophy"></i>
+                    <h1 id="mainTitle">Jader Target Next ICPC</h1>
+                </div>
+                <p class="tagline" id="tagline">SSTU Competitive Programmer's Ranking</p>
+            </div>
+        </header>
+
+        <!-- Controls Section -->
+        <section class="controls">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by name or handle..."
+                    autocomplete="off">
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="deptFilter">Department</label>
+                    <select id="deptFilter" class="filter-select">
+                        <option value="">All Departments</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sortBy">Sort By</label>
+                    <select id="sortBy" class="filter-select">
+                        <option value="score">Score</option>
+                        <option value="rating">Rating</option>
+                        <option value="solved">Problems Solved</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Summary -->
+        <section class="stats-summary" id="statsSummary">
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="totalUsers">--</span>
+                    <span class="stat-label">Coders</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-star"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="avgRating">--</span>
+                    <span class="stat-label">Avg Rating</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="totalSolved">--</span>
+                    <span class="stat-label">Total Problems</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaderboard -->
+        <main class="leaderboard-section">
+            <div class="section-header">
+                <h2><i class="fas fa-medal"></i> Rankings</h2>
+                <div class="header-actions">
+                    <a href="#" class="report-btn" id="reportBtn" title="Report an issue or suggest a user"
+                        target="_blank" rel="noopener">
+                        <i class="fas fa-flag"></i>
+                        <span>Report</span>
+                    </a>
+                    <button class="refresh-btn" id="refreshBtn" title="Refresh Data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="leaderboard-container" id="leaderboard">
+                <!-- Loading State -->
+                <div class="loading-container" id="loadingState">
+                    <div class="loader"></div>
+                    <p id="loadingText">Fetching data from Codeforces...</p>
+                </div>
+
+                <!-- Error State (hidden by default) -->
+                <div class="error-container" id="errorState" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Failed to load leaderboard data</p>
+                    <button class="retry-btn" id="retryBtn">
+                        <i class="fas fa-redo"></i> Retry
+                    </button>
+                </div>
+
+                <!-- User Cards will be injected here -->
+                <div class="user-list" id="userList"></div>
+            </div>
+        </main>
+
+        <!-- Quick Links / Resources -->
+        <section class="resources-section">
+            <div class="section-header">
+                <h2><i class="fas fa-link"></i> Quick Links</h2>
+            </div>
+
+            <div class="resources-grid">
+                <a href="https://codeforces.com/contests" target="_blank" rel="noopener" class="resource-card">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Contests</span>
+                </a>
+                <a href="https://codeforces.com/problemset" target="_blank" rel="noopener" class="resource-card">
+                    <i class="fas fa-list-check"></i>
+                    <span>Problemset</span>
+                </a>
+                <a href="https://youkn0wwho.academy/topic-list" target="_blank" rel="noopener" class="resource-card">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Topic List</span>
+                </a>
+                <a href="https://vjudge.net/group" target="_blank" rel="noopener" class="resource-card">
+                    <i class="fas fa-users-rectangle"></i>
+                    <span>VJudge</span>
+                </a>
+                <a href="https://cses.fi/problemset" target="_blank" rel="noopener" class="resource-card">
+                    <i class="fas fa-code"></i>
+                    <span>CSES</span>
+                </a>
+                <a href="https://atcoder.jp/contests" target="_blank" rel="noopener" class="resource-card">
+                    <i class="fas fa-trophy"></i>
+                    <span>AtCoder</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <!-- <p>Data powered by <a href="https://codeforces.com" target="_blank" rel="noopener">Codeforces API</a></p> -->
+            <p class="cache-info" id="cacheInfo"></p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/leaderboard.js"></script>
+</body>
+
+</html>
