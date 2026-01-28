@@ -10,7 +10,7 @@
 
 const API_CONFIG = {
     BASE_URL: 'https://codeforces.com/api',
-    CACHE_DURATION: 60 * 1000 * 5, // 1 minute in milliseconds
+    CACHE_DURATION: 60 * 1000, // 1 minute in milliseconds
     BATCH_SIZE: 50, // Safe batch size
     PARALLEL_LIMIT: 1, // Reliable parallel limit to avoid rate limits
     CACHE_KEYS: {
@@ -478,7 +478,7 @@ async function fetchLeaderboardData(userConfig, onProgress = null) {
 
             // Default sort values (All Time)
             solved: stats.all.count,
-            score: calculateScore(rating, stats.all.count), // Score uses count for All Time
+            score: calculateScore(rating, stats.all.points), // Score uses Rating Sum for All Time
 
             department: deptMap[handle.toLowerCase()] || 'Unknown',
             rank: info.rank || getRankTitle(rating),
@@ -509,5 +509,3 @@ if (typeof module !== 'undefined' && module.exports) {
         isCacheValid,
     };
 }
-
-

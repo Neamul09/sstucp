@@ -227,9 +227,6 @@ function updateLoadingText(text) {
 /**
  * Apply all filters and sorting, then render
  */
-/**
- * Apply all filters and sorting, then render
- */
 function applyFilters() {
     // 1. Calculate All-Time Ranks first (Baseline)
     // Sort a copy by All-Time Score formula to determine overall standing
@@ -238,10 +235,9 @@ function applyFilters() {
         const statsA = a.stats || { all: { count: a.solved || 0, points: 0 } };
         const statsB = b.stats || { all: { count: b.solved || 0, points: 0 } };
 
-        // All-time score formula: Rating*0.7 + Solved*0.3 (using standard formula)
-        // We use the raw 'solved' count for all-time
-        const scoreA = calculateScore(a.rating, statsA.all.count);
-        const scoreB = calculateScore(b.rating, statsB.all.count);
+        // Unified All-time formula: (Current Rating * 0.7) + (All Time Rating Sum * 0.01)
+        const scoreA = calculateScore(a.rating, statsA.all.points);
+        const scoreB = calculateScore(b.rating, statsB.all.points);
         return scoreB - scoreA;
     });
 
@@ -269,11 +265,11 @@ function applyFilters() {
 
         if (state.timePeriod === 'all') {
             // All Time: (Current Rating * 0.7) + (All Time Rating Sum * 0.01)
-            u.score = Math.round((u.rating * 0.7) + (points * 0.01));
+            u.score = calculateScore(u.rating, points);
         } else {
             // Periods: (Rating Gain * 0.7) + (Period Rating Sum * 0.01)
             const gain = periodStats.ratingGain || 0;
-            u.score = Math.round((gain * 0.7) + (points * 0.01));
+            u.score = calculateScore(gain, points);
             u.periodGain = gain;
             u.periodPoints = points;
         }
