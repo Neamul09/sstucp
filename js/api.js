@@ -161,6 +161,20 @@ async function apiRequest(endpoint, params = {}, timeout = 15000, retries = 3) {
     throw lastError;
 }
 
+/**
+ * Fetch rating history for a user
+ * @param {string} handle - Codeforces handle
+ * @returns {Promise<Object[]>} Array of rating changes
+ */
+async function fetchRatingHistory(handle) {
+    try {
+        return await apiRequest('user.rating', { handle: handle });
+    } catch (error) {
+        console.warn(`Could not fetch rating history for ${handle}:`, error.message);
+        return [];
+    }
+}
+
 // ========================================
 // User Data Fetching
 // ========================================
@@ -234,33 +248,70 @@ async function fetchUserInfo(handles) {
 }
 
 /**
- * Fetch solved problems count for a single user
- * OPTIMIZED: Reduced count limit for faster response
+ * Calculate stats for a user based on submissions
  * @param {string} handle - Codeforces handle
- * @returns {Promise<number>}
+ * @returns {Promise<Object>} Stats object with counts and points for different periods
  */
-async function fetchSolvedCount(handle) {
+async function fetchUserStats(handle) {
     try {
-        // Use a smaller count for faster response - most users won't have 5000+ submissions
-        const submissions = await apiRequest('user.status', {
-            handle: handle,
-            from: 1,
-            count: 5000, // Reduced from 10k for speed
-        }, 20000); // 20 second timeout
+        // Fetch submissions and rating history in parallel
+        const [submissions, ratingHistory] = await Promise.all([
+            apiRequest('user.status', { handle: handle, from: 1, count: 5000 }, 20000),
+            fetchRatingHistory(handle)
+        ]);
 
-        // Count unique solved problems
+        const now = Math.floor(Date.now() / 1000);
+        const daySeconds = 86400;
+        const weekSeconds = daySeconds * 7;
+        const monthSeconds = daySeconds * 30;
+        const yearSeconds = daySeconds * 365;
+
+        // Initialize stats
+        const stats = {
+            all: { count: 0, points: 0, ratingGain: 0 },
+            year: { count: 0, points: 0, ratingGain: 0 },
+            month: { count: 0, points: 0, ratingGain: 0 },
+            week: { count: 0, points: 0, ratingGain: 0 },
+            day: { count: 0, points: 0, ratingGain: 0 }
+        };
+
+        // 1. Process Solved Problems
         const solvedProblems = new Set();
-        submissions.forEach(sub => {
-            if (sub.verdict === 'OK') {
-                const problemKey = `${sub.problem.contestId}-${sub.problem.index}`;
-                solvedProblems.add(problemKey);
-            }
-        });
+        for (const sub of submissions) {
+            if (sub.verdict !== 'OK') continue;
+            const problemKey = `${sub.problem.contestId}-${sub.problem.index}`;
+            if (solvedProblems.has(problemKey)) continue;
+            solvedProblems.add(problemKey);
 
-        return solvedProblems.size;
+            const rating = sub.problem.rating || 0;
+            const age = now - sub.creationTimeSeconds;
+
+            stats.all.count++;
+            stats.all.points += rating;
+
+            if (age < yearSeconds) { stats.year.count++; stats.year.points += rating; }
+            if (age < monthSeconds) { stats.month.count++; stats.month.points += rating; }
+            if (age < weekSeconds) { stats.week.count++; stats.week.points += rating; }
+            if (age < daySeconds) { stats.day.count++; stats.day.points += rating; }
+        }
+
+        // 2. Process Rating Gains
+        for (const change of ratingHistory) {
+            const age = now - change.ratingUpdateTimeSeconds;
+            const gain = change.newRating - change.oldRating;
+
+            stats.all.ratingGain += gain;
+            if (age < yearSeconds) stats.year.ratingGain += gain;
+            if (age < monthSeconds) stats.month.ratingGain += gain;
+            if (age < weekSeconds) stats.week.ratingGain += gain;
+            if (age < daySeconds) stats.day.ratingGain += gain;
+        }
+
+        return stats;
     } catch (error) {
-        console.warn(`Could not fetch solved count for ${handle}:`, error.message);
-        return null; // Return null to indicate failure, not 0
+        console.warn(`Could not fetch stats for ${handle}:`, error.message);
+        const base = { count: 0, points: 0, ratingGain: 0 };
+        return { all: { ...base }, year: { ...base }, month: { ...base }, week: { ...base }, day: { ...base } };
     }
 }
 
@@ -302,30 +353,31 @@ async function fetchAllSolvedCounts(handles, onProgress = null) {
     if (isCacheValid()) {
         const cached = getCached(API_CONFIG.CACHE_KEYS.SOLVED);
         if (cached && Object.keys(cached).length > 0) {
-            console.log('Using cached solved counts');
+            console.log('Using cached stats');
             return cached;
         }
     }
 
-    const solvedCounts = {};
+    const userStats = {};
     let completed = 0;
 
     // Fetch in parallel with concurrency limit
     await parallelLimit(handles, async (handle, index) => {
-        const count = await fetchSolvedCount(handle);
-        solvedCounts[handle] = count !== null ? count : 0;
+        const stats = await fetchUserStats(handle);
+        userStats[handle] = stats;
         completed++;
 
         if (onProgress) {
-            onProgress(handle, solvedCounts[handle], completed - 1, handles.length);
+            // Pass the total count for the progress display
+            onProgress(handle, stats.all.count, completed - 1, handles.length);
         }
     }, API_CONFIG.PARALLEL_LIMIT);
 
-    if (Object.keys(solvedCounts).length > 0) {
-        setCached(API_CONFIG.CACHE_KEYS.SOLVED, solvedCounts);
+    if (Object.keys(userStats).length > 0) {
+        setCached(API_CONFIG.CACHE_KEYS.SOLVED, userStats);
     }
 
-    return solvedCounts;
+    return userStats;
 }
 
 // ========================================
@@ -391,7 +443,7 @@ async function fetchLeaderboardData(userConfig, onProgress = null) {
     });
 
     // Fetch user info and solved counts in parallel
-    const [userInfos, solvedCounts, contests] = await Promise.all([
+    const [userInfos, userStats, contests] = await Promise.all([
         fetchUserInfo(handles),
         fetchAllSolvedCounts(handles, onProgress),
         fetchUpcomingContests()
@@ -400,7 +452,15 @@ async function fetchLeaderboardData(userConfig, onProgress = null) {
     // Combine data
     const users = userInfos.map(info => {
         const handle = info.handle;
-        const solved = solvedCounts[handle] || solvedCounts[handle.toLowerCase()] || 0;
+        // Default empty stats if missing
+        const stats = userStats[handle] || userStats[handle.toLowerCase()] || {
+            all: { count: 0, points: 0 },
+            year: { count: 0, points: 0 },
+            month: { count: 0, points: 0 },
+            week: { count: 0, points: 0 },
+            day: { count: 0, points: 0 }
+        };
+
         const rating = info.rating || 0;
 
         return {
@@ -409,8 +469,14 @@ async function fetchLeaderboardData(userConfig, onProgress = null) {
             avatar: info.titlePhoto || info.avatar,
             rating: rating,
             maxRating: info.maxRating || rating,
-            solved: solved,
-            score: calculateScore(rating, solved),
+
+            // Store full stats
+            stats: stats,
+
+            // Default sort values (All Time)
+            solved: stats.all.count,
+            score: calculateScore(rating, stats.all.count), // Score uses count for All Time
+
             department: deptMap[handle.toLowerCase()] || 'Unknown',
             rank: info.rank || getRankTitle(rating),
             country: info.country,

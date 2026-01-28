@@ -192,15 +192,27 @@ function timeAgo(date) {
 
 /**
  * Calculate composite score for ranking
- * Formula: (Rating * 0.7) + (SolvedCount * 0.5)
  * @param {number} rating - User's Codeforces rating
  * @param {number} solvedCount - Number of problems solved
+ * @param {boolean} isAllTime - Whether to use the All-Time formula or Period formula
  * @returns {number} Composite score
  */
-function calculateScore(rating, solvedCount) {
+function calculateScore(rating, solvedCount, isAllTime = true) {
     const r = rating || 0;
     const s = solvedCount || 0;
-    return Math.round((r * 0.7) + (s * 0.5));
+
+    if (isAllTime) {
+        // Formula: (Rating * 0.7) + (SolvedCount * 0.5)
+        return Math.round((r * 0.7) + (s * 0.5));
+    } else {
+        // Formula for periods: SolvedCount * 0.5 (as requested)
+        // Scaling up by 10 to make it more readable if needed, but user said * 0.5
+        // We will return it exactly as requested, though it will be small.
+        // Actually, for display purposes we might want to keep it as is.
+        // Wait, Score = Solved * 0.5 is very low compared to rating.
+        // But user requested it specifically.
+        return Math.round(s * 0.5);
+    }
 }
 
 // ========================================

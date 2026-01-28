@@ -14,6 +14,7 @@ let state = {
     sortBy: 'score',
     searchQuery: '',
     departmentFilter: '',
+    timePeriod: 'all',
     isLoading: false,
     hasError: false,
     config: {
@@ -43,6 +44,8 @@ const DOM = {
     get cacheInfo() { return $('cacheInfo'); },
     get mainTitle() { return $('mainTitle'); },
     get tagline() { return $('tagline'); },
+    get timeRadios() { return document.querySelectorAll('input[name="timePeriod"]'); },
+    get rankingInfo() { return $('rankingInfo'); },
 };
 
 // ========================================
@@ -82,6 +85,14 @@ function bindEvents() {
     DOM.sortBy.addEventListener('change', (e) => {
         state.sortBy = e.target.value;
         applyFilters();
+    });
+
+    // Time period radios
+    DOM.timeRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            state.timePeriod = e.target.value;
+            applyFilters();
+        });
     });
 
     // Refresh button
@@ -216,10 +227,62 @@ function updateLoadingText(text) {
 /**
  * Apply all filters and sorting, then render
  */
+/**
+ * Apply all filters and sorting, then render
+ */
 function applyFilters() {
-    // First, sort all users by current sort criteria to get actual rankings
-    let allSorted = [...state.users];
-    allSorted.sort((a, b) => {
+    // 1. Calculate All-Time Ranks first (Baseline)
+    // Sort a copy by All-Time Score formula to determine overall standing
+    const allTimeSorted = [...state.users].sort((a, b) => {
+        // Handle potentially missing stats structure during initial load
+        const statsA = a.stats || { all: { count: a.solved || 0, points: 0 } };
+        const statsB = b.stats || { all: { count: b.solved || 0, points: 0 } };
+
+        // All-time score formula: Rating*0.7 + Solved*0.3 (using standard formula)
+        // We use the raw 'solved' count for all-time
+        const scoreA = calculateScore(a.rating, statsA.all.count);
+        const scoreB = calculateScore(b.rating, statsB.all.count);
+        return scoreB - scoreA;
+    });
+
+    // Create map of handle -> allTimeRank
+    const allTimeRanks = {};
+    allTimeSorted.forEach((user, index) => {
+        allTimeRanks[user.handle] = index + 1;
+    });
+
+    // 2. Process users for current view (Time Period)
+    let processedUsers = state.users.map(user => {
+        // Clone user to avoid mutating original state
+        const u = { ...user };
+
+        // Attach the pre-calculated All-Time Rank
+        u.allTimeRank = allTimeRanks[u.handle];
+
+        // Handle stats
+        const stats = u.stats || { all: { count: u.solved || 0, points: 0 } };
+        const periodStats = stats[state.timePeriod] || stats.all;
+
+        // Update display values based on period
+        u.solved = periodStats.count;
+
+        // Calculate score for the current period
+        if (state.timePeriod === 'all') {
+            u.score = calculateScore(u.rating, u.solved, true);
+        } else {
+            // Option 2: Score = (Rating Gain * 0.7) + (Solved Count * 0.5)
+            const gain = periodStats.ratingGain || 0;
+            const solved = periodStats.count || 0;
+            // Using a raw calculation here as it's specifically for this logic
+            u.score = Math.round((gain * 0.7) + (solved * 0.5));
+            u.periodGain = gain; // Store for display
+        }
+
+        return u;
+    });
+
+    // 3. Sort for current view
+    processedUsers.sort((a, b) => {
         switch (state.sortBy) {
             case 'rating':
                 return b.rating - a.rating;
@@ -231,13 +294,13 @@ function applyFilters() {
         }
     });
 
-    // Assign actual rank to each user
-    allSorted.forEach((user, index) => {
+    // 4. Assign rank for current view
+    processedUsers.forEach((user, index) => {
         user.actualRank = index + 1;
     });
 
-    // Now apply filters
-    let filtered = [...allSorted];
+    // 5. Apply Search/Dept Filters
+    let filtered = processedUsers;
 
     // Search filter
     if (state.searchQuery) {
@@ -256,7 +319,18 @@ function applyFilters() {
     }
 
     state.filteredUsers = filtered;
+
+    // // Toggle ranking info visibility
+    // if (DOM.rankingInfo) {
+    //     DOM.rankingInfo.style.display = state.timePeriod !== 'all' ? 'flex' : 'none';
+    //     if (state.timePeriod !== 'all') {
+    //         DOM.rankingInfo.querySelector('span').textContent =
+    //             `Ranking based on current activity (Rating Gain & Problem S)`;
+    //     }
+    // }
+
     renderUserList();
+    updateStats(); // Update summary stats with filtered views
 }
 
 /**
@@ -312,6 +386,20 @@ function renderUserCard(user, rank) {
            <div class="user-avatar-placeholder" style="display: none;">${user.handle.charAt(0).toUpperCase()}</div>`
         : `<div class="user-avatar-placeholder">${user.handle.charAt(0).toUpperCase()}</div>`;
 
+    // Show overall rank if viewing a specific time period
+    let overallRankHtml = '';
+    if (state.timePeriod !== 'all' && user.allTimeRank) {
+        overallRankHtml = `<span class="overall-rank" title="All-Time Rank">Overall: #${user.allTimeRank}</span>`;
+    }
+
+    const ratingValue = formatNumber(user.rating);
+    const ratingHtml = state.timePeriod !== 'all' && user.periodGain !== undefined
+        ? `<span class="${ratingClass}">${ratingValue}</span>
+           <span class="rating-badge ${user.periodGain >= 0 ? 'gain' : 'loss'}">
+             ${user.periodGain >= 0 ? '+' : ''}${user.periodGain}
+           </span>`
+        : `<span class="value ${ratingClass}">${ratingValue}</span>`;
+
     return `
         <article class="user-card ${rankClass}" onclick="window.open('https://codeforces.com/profile/${user.handle}', '_blank')">
             <div class="user-card-left">
@@ -323,6 +411,7 @@ function renderUserCard(user, rank) {
                     <h3 class="user-name">${escapeHtml(user.name)}</h3>
                     <div class="user-handle">
                         <a href="https://codeforces.com/profile/${user.handle}" target="_blank" rel="noopener" onclick="event.stopPropagation()">@${user.handle}</a>
+                        ${overallRankHtml}
                         ${user.department ? `<span class="user-dept">${user.department}</span>` : ''}
                     </div>
                 </div>
@@ -335,7 +424,7 @@ function renderUserCard(user, rank) {
                 </div>
                 <div class="user-stat rating">
                     <span class="label">Rating</span>
-                    <span class="value ${ratingClass}">${formatNumber(user.rating)}</span>
+                    ${ratingHtml}
                     <i class="fas fa-chart-line stat-icon"></i>
                 </div>
                 <div class="user-stat solved">
