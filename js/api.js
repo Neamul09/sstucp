@@ -12,7 +12,7 @@ const API_CONFIG = {
     BASE_URL: 'https://codeforces.com/api',
     CACHE_DURATION: 60 * 1000, // 1 minute in milliseconds
     BATCH_SIZE: 50, // Max handles per request for user.info
-    PARALLEL_LIMIT: 3, // Max concurrent requests for solved counts
+    PARALLEL_LIMIT: 5, // Increased to 5 for faster fetching
     CACHE_KEYS: {
         USERS: 'cf_leaderboard_users',
         SOLVED: 'cf_leaderboard_solved',
@@ -283,7 +283,7 @@ async function fetchUserStats(handle) {
             if (solvedProblems.has(problemKey)) continue;
             solvedProblems.add(problemKey);
 
-            const rating = sub.problem.rating || 0;
+            const rating = sub.problem.rating || 1600; // Fallback to 1600 for unrated problems
             const age = now - sub.creationTimeSeconds;
 
             stats.all.count++;

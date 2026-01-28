@@ -263,19 +263,19 @@ function applyFilters() {
         const stats = u.stats || { all: { count: u.solved || 0, points: 0 } };
         const periodStats = stats[state.timePeriod] || stats.all;
 
-        // Update display values based on period
-        u.solved = periodStats.count;
+        // Calculate score for the current period (Unified Formula)
+        const points = periodStats.points || 0;
+        u.solved = periodStats.count || 0;
 
-        // Calculate score for the current period
         if (state.timePeriod === 'all') {
-            u.score = calculateScore(u.rating, u.solved, true);
+            // All Time: (Current Rating * 0.7) + (All Time Rating Sum * 0.01)
+            u.score = Math.round((u.rating * 0.7) + (points * 0.01));
         } else {
-            // Option 2: Score = (Rating Gain * 0.7) + (Solved Count * 0.5)
+            // Periods: (Rating Gain * 0.7) + (Period Rating Sum * 0.01)
             const gain = periodStats.ratingGain || 0;
-            const solved = periodStats.count || 0;
-            // Using a raw calculation here as it's specifically for this logic
-            u.score = Math.round((gain * 0.7) + (solved * 0.5));
-            u.periodGain = gain; // Store for display
+            u.score = Math.round((gain * 0.7) + (points * 0.01));
+            u.periodGain = gain;
+            u.periodPoints = points;
         }
 
         return u;
@@ -320,14 +320,14 @@ function applyFilters() {
 
     state.filteredUsers = filtered;
 
-    // // Toggle ranking info visibility
-    // if (DOM.rankingInfo) {
-    //     DOM.rankingInfo.style.display = state.timePeriod !== 'all' ? 'flex' : 'none';
-    //     if (state.timePeriod !== 'all') {
-    //         DOM.rankingInfo.querySelector('span').textContent =
-    //             `Ranking based on current activity (Rating Gain & Problem S)`;
-    //     }
-    // }
+    // Toggle ranking info visibility
+    if (DOM.rankingInfo) {
+        DOM.rankingInfo.style.display = state.timePeriod !== 'all' ? 'flex' : 'none';
+        if (state.timePeriod !== 'all') {
+            DOM.rankingInfo.querySelector('span').textContent =
+                `Ranking based on current activity (Formula: Rating Gain × 0.7 + Rating Sum × 0.01)`;
+        }
+    }
 
     renderUserList();
     updateStats(); // Update summary stats with filtered views
