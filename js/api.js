@@ -12,7 +12,7 @@ const API_CONFIG = {
     BASE_URL: 'https://codeforces.com/api',
     CACHE_DURATION: 60 * 1000, // 1 minute in milliseconds
     BATCH_SIZE: 50, // Safe batch size
-    PARALLEL_LIMIT: 3, // Reliable parallel limit to avoid rate limits
+    PARALLEL_LIMIT: 1, // Reliable parallel limit to avoid rate limits
     CACHE_KEYS: {
         USERS: 'cf_leaderboard_users',
         SOLVED: 'cf_leaderboard_solved',
@@ -509,3 +509,4 @@ if (typeof module !== 'undefined' && module.exports) {
         isCacheValid,
     };
 }
+
