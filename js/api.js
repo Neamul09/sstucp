@@ -11,8 +11,8 @@
 const API_CONFIG = {
     BASE_URL: 'https://codeforces.com/api',
     CACHE_DURATION: 60 * 1000, // 1 minute in milliseconds
-    BATCH_SIZE: 50, // Max handles per request for user.info
-    PARALLEL_LIMIT: 5, // Increased to 5 for faster fetching
+    BATCH_SIZE: 50, // Safe batch size
+    PARALLEL_LIMIT: 3, // Reliable parallel limit to avoid rate limits
     CACHE_KEYS: {
         USERS: 'cf_leaderboard_users',
         SOLVED: 'cf_leaderboard_solved',
@@ -147,7 +147,7 @@ async function apiRequest(endpoint, params = {}, timeout = 15000, retries = 3) {
 
             // Wait before retrying (exponential backoff)
             if (attempt < retries - 1) {
-                const waitTime = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
+                const waitTime = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
                 console.log(`Retry ${attempt + 1}/${retries - 1} for ${endpoint} after ${waitTime}ms`);
                 await delay(waitTime);
             }
@@ -363,6 +363,9 @@ async function fetchAllSolvedCounts(handles, onProgress = null) {
 
     // Fetch in parallel with concurrency limit
     await parallelLimit(handles, async (handle, index) => {
+        // Small delay to space out parallel requests
+        await delay(200);
+
         const stats = await fetchUserStats(handle);
         userStats[handle] = stats;
         completed++;
