@@ -10,7 +10,7 @@
 
 const API_CONFIG = {
     BASE_URL: 'https://codeforces.com/api',
-    CACHE_DURATION: 60 * 1000, // 1 minute in milliseconds
+    CACHE_DURATION: 60 * 1000 * 5, // 1 minute in milliseconds
     BATCH_SIZE: 50, // Safe batch size
     PARALLEL_LIMIT: 1, // Reliable parallel limit to avoid rate limits
     CACHE_KEYS: {
@@ -509,4 +509,5 @@ if (typeof module !== 'undefined' && module.exports) {
         isCacheValid,
     };
 }
+
 
