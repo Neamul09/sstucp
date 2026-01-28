@@ -43,6 +43,26 @@
         {
             "handle": "juuuuuui",
             "department": "CSE"
+        },
+        {
+            "handle": "shreosichowdhurysstu29",
+            "department": "CSE"
+        },
+        {
+            "handle": "Tanvir_Ahmed_28",
+            "department": "CSE"
+        },
+        {
+            "handle": "sadia_tul",
+            "department": "CSE"
+        },
+        {
+            "handle": "cosmic_electro",
+            "department": "CSE"
+        },
+        {
+            "handle": "Nolan_6600",
+            "department": "CSE"
         }
     ],
     "config": {
@@ -51,3 +71,4 @@
     }
 
 }
+
