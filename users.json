@@ -63,6 +63,18 @@
         {
             "handle": "Nolan_6600",
             "department": "CSE"
+        },
+        {
+            "handle": "Roksana_2162",
+            "department": "CSE"
+        },
+        {
+            "handle": "775577",
+            "department": "CSE"
+        },
+        {
+            "handle": "Nazifanishatnishe2023",
+            "department": "CSE"
         }
     ],
     "config": {
@@ -71,4 +83,5 @@
     }
 
 }
+
 
